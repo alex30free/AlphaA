@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quality Momentum Screener — Alpha Architect · Sweden</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@300;400;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg:       #070a0e;
+      --surface:  #0b1017;
+      --surface2: #0f1620;
+      --border:   #182030;
+      --border2:  #1e2a3a;
+      --text:     #b8ccd8;
+      --muted:    #3a5060;
+      --muted2:   #567080;
+      --accent:   #c084fc;
+      --accent2:  #a855f7;
+      --green:    #34d399;
+      --red:      #f87171;
+      --gold:     #fbbf24;
+      --blue:     #60a5fa;
+      --white:    #eef2f6;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 2px,
+        rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px
+      );
+      pointer-events: none; z-index: 9999;
+    }
+
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(192,132,252,0.013) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(192,132,252,0.013) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none; z-index: 0;
+    }
+
+    .glow-tl {
+      position: fixed; top: -120px; left: -80px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(192,132,252,0.055) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+    .glow-br {
+      position: fixed; bottom: -80px; right: -100px;
+      width: 420px; height: 420px;
+      background: radial-gradient(circle, rgba(96,165,250,0.04) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+
+    .container {
+      position: relative; z-index: 1;
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 0 28px 100px;
+    }
+
+    /* HEADER */
+    header {
+      padding: 52px 0 40px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 48px;
+      animation: fadeDown 0.6s ease both;
+    }
+    .header-inner {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .brand { display: flex; flex-direction: column; gap: 10px; }
+    .brand-tag {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.28em; color: var(--accent);
+      text-transform: uppercase;
+      background: rgba(192,132,252,0.07);
+      border: 1px solid rgba(192,132,252,0.2);
+      padding: 4px 12px;
+      display: inline-block; width: fit-content;
+    }
+    h1 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: clamp(22px, 4vw, 38px);
+      font-weight: 600; color: var(--white);
+      line-height: 1.05; letter-spacing: -0.03em;
+    }
+    h1 em { font-style: normal; color: var(--accent); }
+    .brand-sub {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px; color: var(--muted2); letter-spacing: 0.04em;
+    }
+    .header-right {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; color: var(--muted);
+      text-align: right; line-height: 2;
+    }
+    .live-dot {
+      display: inline-block; width: 7px; height: 7px;
+      background: var(--green); border-radius: 50%; margin-right: 6px;
+      animation: pulse 2.2s ease infinite;
+    }
+
+    /* FUNNEL */
+    .funnel-strip {
+      display: flex; gap: 0;
+      margin-bottom: 44px;
+      animation: fadeDown 0.6s 0.1s ease both;
+      overflow-x: auto;
+    }
+    .funnel-step { display: flex; align-items: center; flex: 1; min-width: 0; }
+    .funnel-box {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-right: none;
+      padding: 14px 18px; min-width: 0;
+    }
+    .funnel-step:last-child .funnel-box {
+      border-right: 1px solid rgba(192,132,252,0.35);
+      border-color: rgba(192,132,252,0.35);
+      background: rgba(192,132,252,0.04);
+    }
+    .funnel-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px; font-weight: 500;
+      letter-spacing: 0.18em; color: var(--muted);
+      text-transform: uppercase; margin-bottom: 4px;
+    }
+    .funnel-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px; font-weight: 800;
+      color: var(--white); letter-spacing: -0.02em;
+    }
+    .funnel-step:last-child .funnel-num { color: var(--accent); }
+    .funnel-arrow {
+      font-size: 14px; color: var(--border2);
+      padding: 0 2px; flex-shrink: 0; align-self: center;
+    }
+
+    /* STAT CARDS */
+    .stats-row {
+      display: flex; gap: 14px; margin-bottom: 44px;
+      flex-wrap: wrap;
+      animation: fadeDown 0.6s 0.15s ease both;
+    }
+    .stat-card {
+      flex: 1; min-width: 130px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 16px 20px;
+    }
+    .stat-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 26px; font-weight: 800;
+      color: var(--white); letter-spacing: -0.02em;
+    }
+    .stat-num.purple { color: var(--accent); }
+    .stat-num.green  { color: var(--green); }
+    .stat-lbl {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.15em; margin-top: 3px;
+    }
+
+    /* SECTION HEADER */
+    .section-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      animation: fadeDown 0.6s 0.18s ease both;
+    }
+    .section-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; font-weight: 500;
+      letter-spacing: 0.22em; color: var(--accent);
+      text-transform: uppercase;
+    }
+    .exchange-badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      padding: 4px 10px; letter-spacing: 0.1em;
+    }
+
+    /* TABLE */
+    .table-wrap { overflow-x: auto; animation: fadeUp 0.6s 0.22s ease both; }
+    table { width: 100%; border-collapse: collapse; font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
+    thead tr { border-bottom: 1px solid var(--border2); }
+    thead th {
+      padding: 10px 14px; text-align: left;
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.15em; color: var(--muted);
+      text-transform: uppercase; white-space: nowrap;
+    }
+    thead th.right  { text-align: right; }
+    thead th.center { text-align: center; }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+      animation: rowIn 0.4s ease both;
+    }
+    tbody tr:hover { background: rgba(192,132,252,0.025); }
+    tbody tr:nth-child(1)  { animation-delay: 0.22s; }
+    tbody tr:nth-child(2)  { animation-delay: 0.25s; }
+    tbody tr:nth-child(3)  { animation-delay: 0.28s; }
+    tbody tr:nth-child(4)  { animation-delay: 0.31s; }
+    tbody tr:nth-child(5)  { animation-delay: 0.34s; }
+    tbody tr:nth-child(6)  { animation-delay: 0.37s; }
+    tbody tr:nth-child(7)  { animation-delay: 0.40s; }
+    tbody tr:nth-child(8)  { animation-delay: 0.43s; }
+    tbody tr:nth-child(9)  { animation-delay: 0.46s; }
+    tbody tr:nth-child(10) { animation-delay: 0.49s; }
+    tbody tr:nth-child(11) { animation-delay: 0.52s; }
+    tbody tr:nth-child(12) { animation-delay: 0.55s; }
+    tbody tr:nth-child(13) { animation-delay: 0.58s; }
+    tbody tr:nth-child(14) { animation-delay: 0.61s; }
+    tbody tr:nth-child(15) { animation-delay: 0.64s; }
+    tbody tr:nth-child(16) { animation-delay: 0.67s; }
+    tbody tr:nth-child(17) { animation-delay: 0.70s; }
+    tbody tr:nth-child(18) { animation-delay: 0.73s; }
+    tbody tr:nth-child(19) { animation-delay: 0.76s; }
+    tbody tr:nth-child(20) { animation-delay: 0.79s; }
+    tbody td { padding: 13px 14px; white-space: nowrap; }
+    tbody td.right  { text-align: right; }
+    tbody td.center { text-align: center; }
+
+    .rank-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px; font-weight: 800; color: var(--border2);
+    }
+    tr:nth-child(1) .rank-num { color: var(--accent); }
+    tr:nth-child(2) .rank-num { color: rgba(192,132,252,0.55); }
+    tr:nth-child(3) .rank-num { color: rgba(192,132,252,0.32); }
+
+    .ticker-main {
+      font-weight: 500; color: var(--white);
+      letter-spacing: 1px; display: block;
+    }
+    .company-name {
+      font-size: 11px; color: var(--muted2);
+      margin-top: 2px; display: block;
+    }
+
+    .sector-pill {
+      font-size: 9px; font-weight: 500;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+      border: 1px solid var(--border2);
+      color: var(--muted);
+      background: rgba(255,255,255,0.025);
+      white-space: nowrap;
+    }
+
+    .fip-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; }
+    .fip-bar-bg { width: 40px; height: 3px; background: var(--border2); border-radius: 2px; overflow: hidden; }
+    .fip-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--green), var(--accent)); }
+
+    .mom-pos { color: var(--green); }
+    .mom-neg { color: var(--red); }
+
+    .fscore-badge {
+      display: inline-block; font-size: 11px; font-weight: 500;
+      padding: 2px 8px; border-radius: 2px;
+    }
+    .fs-good { color: var(--green);  background: rgba(52,211,153,0.1);  border: 1px solid rgba(52,211,153,0.25); }
+    .fs-mid  { color: var(--gold);   background: rgba(251,191,36,0.08);  border: 1px solid rgba(251,191,36,0.2); }
+    .fs-weak { color: var(--red);    background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); }
+    .fs-na   { color: var(--muted);  background: rgba(255,255,255,0.03); border: 1px solid var(--border2); }
+
+    .rsl-ok  { color: var(--green); }
+    .rsl-mid { color: var(--gold); }
+    .rsl-low { color: var(--muted2); }
+
+    .rank-change {
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 2px 7px; font-size: 11px; font-weight: 500;
+    }
+    .rank-up   { color: var(--green); background: rgba(52,211,153,0.08); }
+    .rank-down { color: var(--red);   background: rgba(248,113,113,0.08); }
+    .rank-same { color: var(--muted); background: rgba(255,255,255,0.04); }
+    .rank-new  { color: var(--gold);  background: rgba(251,191,36,0.08); font-size: 10px; letter-spacing: 0.1em; }
+
+    /* METHODOLOGY */
+    .method-box {
+      margin-top: 72px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-left: 3px solid var(--accent);
+      padding: 36px 40px;
+      animation: fadeUp 0.6s 0.4s ease both;
+    }
+    .method-box h2 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; font-weight: 500;
+      letter-spacing: 0.22em; color: var(--accent);
+      text-transform: uppercase; margin-bottom: 24px;
+    }
+    .method-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 28px 40px;
+    }
+    .method-step { position: relative; padding-left: 28px; }
+    .step-num {
+      position: absolute; left: 0; top: 0;
+      font-family: 'Syne', sans-serif;
+      font-size: 18px; font-weight: 800;
+      color: rgba(192,132,252,0.18); line-height: 1;
+    }
+    .method-step h3 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 0.15em; text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .method-step p { font-size: 12px; color: var(--muted2); line-height: 1.7; }
+    .method-step p strong { color: var(--text); }
+    .formula-row {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      margin-top: 28px; padding-top: 24px;
+      border-top: 1px solid var(--border);
+      align-items: center;
+    }
+    .formula-lbl {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; color: var(--muted);
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .fpill {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px; padding: 6px 14px; border: 1px solid;
+    }
+    .fp-mom  { color: var(--accent); border-color: rgba(192,132,252,0.3); background: rgba(192,132,252,0.06); }
+    .fp-fip  { color: var(--green);  border-color: rgba(52,211,153,0.3);  background: rgba(52,211,153,0.06); }
+    .fp-fs   { color: var(--gold);   border-color: rgba(251,191,36,0.3);  background: rgba(251,191,36,0.06); }
+    .fp-rsl  { color: var(--blue);   border-color: rgba(96,165,250,0.3);  background: rgba(96,165,250,0.06); }
+
+    /* RESEARCH */
+    .research-box {
+      margin-top: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-left: 3px solid var(--gold);
+      padding: 36px 40px;
+      animation: fadeUp 0.6s 0.48s ease both;
+    }
+    .research-box h2 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; font-weight: 500;
+      letter-spacing: 0.22em; color: var(--gold);
+      text-transform: uppercase; margin-bottom: 8px;
+    }
+    .research-citation {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; color: var(--muted);
+      margin-bottom: 28px; font-style: italic;
+    }
+    .research-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px 40px;
+    }
+    .research-item h3 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; color: var(--gold);
+      letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 8px;
+    }
+    .research-item p { font-size: 12px; color: var(--muted2); line-height: 1.7; }
+    .research-item p strong { color: var(--text); }
+
+    /* LOADER / ERROR */
+    .loader {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 300px; gap: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px; color: var(--muted);
+    }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid var(--border2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .error-msg {
+      display: none; padding: 20px;
+      border: 1px solid rgba(248,113,113,0.3);
+      color: var(--red);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      background: rgba(248,113,113,0.05);
+    }
+
+    /* FOOTER */
+    footer {
+      margin-top: 72px; padding-top: 24px;
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between;
+      align-items: center; flex-wrap: wrap; gap: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; color: var(--muted);
+      animation: fadeDown 0.6s 0.55s ease both;
+    }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--accent); }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes rowIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse {
+      0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(52,211,153,0.5); }
+      50%      { box-shadow: 0 0 0 5px rgba(52,211,153,0); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="glow-tl"></div>
+<div class="glow-br"></div>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-tag">Quality Momentum · Sweden</div>
+        <h1>Alpha Architect<br><em>Quality Momentum</em></h1>
+        <div class="brand-sub">12_2 momentum · FIP quality filter · F-Score gate · Nasdaq Stockholm</div>
+      </div>
+      <div class="header-right">
+        <div><span class="live-dot"></span><span id="updated-time">Loading…</span></div>
+        <div id="stocks-screened">— stocks screened</div>
+        <div>12_2 skip-month momentum</div>
+        <div>Frog-in-the-Pan consistency filter</div>
+        <div>Source: Yahoo Finance + Börsdata</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- FUNNEL -->
+  <div class="funnel-strip" id="funnel-strip"></div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-num purple" id="stat-universe">—</div>
+      <div class="stat-lbl">Universe</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-new">—</div>
+      <div class="stat-lbl">New Entries</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num green" id="stat-top-mom">—</div>
+      <div class="stat-lbl">Top 12_2 Mom</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-avg-fip">—</div>
+      <div class="stat-lbl">Avg FIP Score</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-fscore-ok">—</div>
+      <div class="stat-lbl">F-Score ≥ 5</div>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div class="error-msg" id="error-msg">
+    ⚠ Could not load screener_data.json. Ensure it exists and GitHub Pages is enabled.
+  </div>
+
+  <!-- TABLE HEADER -->
+  <div class="section-header">
+    <div class="section-title">Top 20 · Quality Momentum Ranking</div>
+    <div class="exchange-badge">Nasdaq Stockholm · SEK</div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap" id="table-wrap">
+    <div class="loader" id="loader">
+      <div class="spinner"></div>
+      Fetching latest data…
+    </div>
+    <table id="main-table" style="display:none">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Ticker / Company</th>
+          <th>Sector</th>
+          <th class="right">12_2 Mom</th>
+          <th class="right">FIP Quality</th>
+          <th class="right">RSL</th>
+          <th class="right">F-Score</th>
+          <th class="right">Price (SEK)</th>
+          <th class="center">vs Last Week</th>
+        </tr>
+      </thead>
+      <tbody id="main-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- METHODOLOGY -->
+  <div class="method-box">
+    <h2>Methodology — 5-Step Funnel</h2>
+    <div class="method-steps">
+      <div class="method-step">
+        <div class="step-num">01</div>
+        <h3>Universe</h3>
+        <p>275 Swedish stocks (Large, Mid &amp; Small Cap) from Nasdaq Stockholm. Live prices fetched weekly via Yahoo Finance. <strong>F-Score data from Börsdata CSV</strong> — Piotroski's 9-signal financial health rating.</p>
+      </div>
+      <div class="method-step">
+        <div class="step-num">02</div>
+        <h3>Outlier Removal</h3>
+        <p>Remove <strong>top 5% by 1-month return</strong> — lottery stocks whose recent spikes are unlikely to persist. Also remove <strong>bottom 10% by market beta</strong> — stocks with near-zero market trend correlation.</p>
+      </div>
+      <div class="method-step">
+        <div class="step-num">03</div>
+        <h3>12_2 Momentum</h3>
+        <p>Rank all remaining stocks by <strong>12-month return, skipping the most recent month</strong> (t-12 to t-1). Skip-month convention avoids short-term reversal contamination. Keep the top 50% by this score.</p>
+      </div>
+      <div class="method-step">
+        <div class="step-num">04</div>
+        <h3>FIP Quality Filter</h3>
+        <p><strong>FIP = sign(12m) × (%negative days − %positive days).</strong> Lower FIP = more positive trading days = smoother trend. From the momentum top 50%, the 50 with the lowest FIP are kept. Eliminates "big jump" stocks.</p>
+      </div>
+      <div class="method-step">
+        <div class="step-num">05</div>
+        <h3>Quality Gate (F-Score)</h3>
+        <p>Piotroski <strong>F-Score ≥ 5</strong> (out of 9) is a soft quality flag. Scores 7–9 = strong financial health. Shown in the table as a final sanity check. Does not hard-exclude but heavily informs conviction.</p>
+      </div>
+      <div class="method-step">
+        <div class="step-num">06</div>
+        <h3>Final Top 20</h3>
+        <p>From the FIP-filtered set, re-rank by 12_2 momentum. <strong>Top 20 published every Friday</strong> after Nasdaq Stockholm closes (~18:30 CET) via automated GitHub Actions.</p>
+      </div>
+    </div>
+    <div class="formula-row">
+      <span class="formula-lbl">Signals</span>
+      <span class="fpill fp-mom">12_2 Momentum (t-12 → t-1)</span>
+      <span class="fpill fp-fip">FIP Consistency</span>
+      <span class="fpill fp-fs">F-Score ≥ 5</span>
+      <span class="fpill fp-rsl">RSL ≥ 1.0</span>
+    </div>
+  </div>
+
+  <!-- RESEARCH -->
+  <div class="research-box">
+    <h2>What the Research Shows</h2>
+    <div class="research-citation">
+      Alpha Architect — "The Quantitative Momentum Investing Philosophy" (Vogel &amp; Gray, 2016) ·
+      Jegadeesh &amp; Titman (1993) · Asness, Moskowitz &amp; Pedersen (2013)
+    </div>
+    <div class="research-grid">
+      <div class="research-item">
+        <h3>Why Momentum Works</h3>
+        <p>Stocks that outperformed over the past 12 months tend to continue outperforming over the next 3–12 months. Jegadeesh &amp; Titman (1993) documented <strong>excess returns of ~1% per month</strong> for high-momentum stocks, replicated globally across decades.</p>
+      </div>
+      <div class="research-item">
+        <h3>The Skip-Month Rule</h3>
+        <p>Using 12-month return <em>excluding</em> the most recent month (12_2) avoids <strong>short-term reversal</strong> — where the very best recent performers mean-revert. This is standard convention in all academic momentum research.</p>
+      </div>
+      <div class="research-item">
+        <h3>Frog-in-the-Pan</h3>
+        <p>Stocks with <strong>gradual, consistent daily increases</strong> outperform stocks that gained the same return in a few big days. The FIP filter separates durable trend from volatile spike momentum — the key insight of the Alpha Architect approach.</p>
+      </div>
+      <div class="research-item">
+        <h3>Quality + Momentum</h3>
+        <p>Combining momentum with Piotroski F-Score reduces "dead cat bounce" exposure. Stocks with strong momentum <em>and</em> improving fundamentals show <strong>more persistent outperformance</strong> with lower tail risk than pure price momentum alone.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <span>⚠ For informational purposes only — not financial advice.</span>
+    <span><a href="https://alex30free.github.io/">← StockLab Home</a></span>
+  </footer>
+
+</div>
+
+<script>
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function fmtSEK(n) {
+  if (n==null) return '—';
+  return n.toLocaleString('sv-SE',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtPct(n,plus=true) {
+  if (n==null) return '—';
+  return (plus&&n>=0?'+':'')+n.toFixed(1)+'%';
+}
+
+// FIP quality bar: lower FIP = smoother momentum = higher quality %
+function fipQualityPct(fip) {
+  if (fip==null) return 0;
+  const min=-0.40, max=0.15;
+  const c=Math.max(min,Math.min(max,fip));
+  return Math.round((1-(c-min)/(max-min))*100);
+}
+
+function fscoreBadge(fs) {
+  if (fs==null) return '<span class="fscore-badge fs-na">N/A</span>';
+  const cls=fs>=7?'fs-good':fs>=5?'fs-mid':'fs-weak';
+  return `<span class="fscore-badge ${cls}">${fs}/9</span>`;
+}
+
+function rankBadge(rank,prev) {
+  if (prev==null) return '<span class="rank-change rank-new">NEW</span>';
+  const d=prev-rank;
+  if (d>0) return `<span class="rank-change rank-up">▲${d} #${prev}</span>`;
+  if (d<0) return `<span class="rank-change rank-down">▼${Math.abs(d)} #${prev}</span>`;
+  return `<span class="rank-change rank-same">— #${prev}</span>`;
+}
+
+async function loadData() {
+  try {
+    const res=await fetch('screener_data.json?_='+Date.now());
+    if (!res.ok) throw new Error('not found');
+    render(await res.json());
+  } catch(e) {
+    document.getElementById('loader').style.display='none';
+    document.getElementById('error-msg').style.display='block';
+  }
+}
+
+function render(data) {
+  document.getElementById('loader').style.display='none';
+  const top20=data.top20||[], funnel=data.funnel||{};
+
+  document.getElementById('updated-time').textContent='Updated: '+data.updated;
+  document.getElementById('stocks-screened').textContent=
+    `${data.total_valid} of ${data.total_attempted} stocks returned valid data`;
+
+  // Funnel
+  const funnelDefs=[
+    {label:'Universe',     key:'universe'},
+    {label:'Valid Data',   key:'after_data_filter'},
+    {label:'- Lottery Rm', key:'after_lottery_rm'},
+    {label:'Mom Top 50%',  key:'after_momentum_top'},
+    {label:'FIP Top 50',   key:'after_fip'},
+    {label:'Final Top 20', key:'final_top20'},
+  ];
+  const fEl=document.getElementById('funnel-strip');
+  fEl.innerHTML=funnelDefs.map((f,i)=>{
+    const v=funnel[f.key]??'—';
+    const arrow=i<funnelDefs.length-1?'<div class="funnel-arrow">›</div>':'';
+    return `<div class="funnel-step"><div class="funnel-box"><div class="funnel-label">${f.label}</div><div class="funnel-num">${v}</div></div>${arrow}</div>`;
+  }).join('');
+
+  // Stats
+  const newEntries=top20.filter(s=>!s.prev_rank).length;
+  const fscoreOk=top20.filter(s=>s.fscore_ok).length;
+  const topMom=top20.length?top20[0].mom_12_2:null;
+  const fipsWithVal=top20.filter(s=>s.fip!=null);
+  const avgFip=fipsWithVal.length?(fipsWithVal.reduce((a,s)=>a+s.fip,0)/fipsWithVal.length).toFixed(3):'—';
+
+  document.getElementById('stat-universe').textContent=data.total_attempted;
+  document.getElementById('stat-new').textContent=newEntries;
+  document.getElementById('stat-top-mom').textContent=topMom!=null?fmtPct(topMom):'—';
+  document.getElementById('stat-avg-fip').textContent=avgFip;
+  document.getElementById('stat-fscore-ok').textContent=`${fscoreOk}/20`;
+
+  // Table
+  const tbody=document.getElementById('main-tbody');
+  tbody.innerHTML='';
+  top20.forEach((s,i)=>{
+    const rank=i+1;
+    const td=s.ticker_display||s.ticker.replace('.ST','');
+    const mc=s.mom_12_2>=0?'mom-pos':'mom-neg';
+    const rc=(s.rsl||0)>=1.15?'rsl-ok':(s.rsl||0)>=1.0?'rsl-mid':'rsl-low';
+    const fp=fipQualityPct(s.fip);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><span class="rank-num">${String(rank).padStart(2,'0')}</span></td>
+      <td><span class="ticker-main">${esc(td)}</span><span class="company-name">${esc(s.name)}</span></td>
+      <td><span class="sector-pill">${esc(s.sector||'—')}</span></td>
+      <td class="right"><span class="${mc}">${fmtPct(s.mom_12_2)}</span></td>
+      <td class="right">
+        <div class="fip-badge">
+          <span style="color:var(--muted2);min-width:44px;text-align:right;font-size:11px">${s.fip!=null?s.fip.toFixed(3):'—'}</span>
+          <div class="fip-bar-bg"><div class="fip-bar-fill" style="width:${fp}%"></div></div>
+        </div>
+      </td>
+      <td class="right"><span class="${rc}">${s.rsl!=null?s.rsl.toFixed(3):'—'}</span></td>
+      <td class="right">${fscoreBadge(s.fscore)}</td>
+      <td class="right" style="color:var(--text)">${fmtSEK(s.price)}</td>
+      <td class="center">${rankBadge(rank,s.prev_rank)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('main-table').style.display='table';
+}
+
+loadData();
+</script>
+</body>
+</html>
