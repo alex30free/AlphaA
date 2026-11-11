@@ -1,0 +1,40 @@
+name: Update sector trends
+
+on:
+  schedule:
+    # Fridays 17:45 UTC (18:45 CET / 19:45 CEST), after Stockholm close
+    - cron: "45 17 * * 5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sector-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download prices and rebuild sector indices
+        run: python scripts/sector_update.py
+
+      - name: Commit updated data
+        run: |
+          if git diff --quiet -- data.json && git ls-files --error-unmatch data.json >/dev/null 2>&1; then
+            echo "No changes in data."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898733+github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          git commit -m "sector trends: weekly data update $(date -u +%Y-%m-%d)"
+          git push
