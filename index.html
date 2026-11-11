@@ -3,735 +3,353 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quality Momentum Screener — Alpha Architect · Sweden</title>
+  <title>Swedish Sector Trends — StockLab</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@300;400;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
-
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <style>
     :root {
-      --bg:       #070a0e;
-      --surface:  #0b1017;
-      --surface2: #0f1620;
-      --border:   #182030;
-      --border2:  #1e2a3a;
-      --text:     #b8ccd8;
-      --muted:    #3a5060;
-      --muted2:   #567080;
-      --accent:   #c084fc;
-      --accent2:  #a855f7;
-      --green:    #34d399;
-      --red:      #f87171;
-      --gold:     #fbbf24;
-      --blue:     #60a5fa;
-      --white:    #eef2f6;
+      --bg: #080c10; --surface: #0d1318; --surface2: #111820;
+      --border: #1c2830; --border2: #253340;
+      --text: #c8d8e8; --muted: #4a6070; --muted2: #6a8090; --white: #f0f4f8;
+      --teal: #00c8d4; --line: #0099ff; --ma: #f0c040; --up: #00e5a0; --down: #ff5c6c; --ref: #6a8090;
     }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'IBM Plex Sans', sans-serif;
-      font-weight: 300;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    body::before {
-      content: '';
-      position: fixed; inset: 0;
-      background: repeating-linear-gradient(
-        0deg, transparent, transparent 2px,
-        rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px
-      );
-      pointer-events: none; z-index: 9999;
-    }
-
-    body::after {
-      content: '';
-      position: fixed; inset: 0;
-      background-image:
-        linear-gradient(rgba(192,132,252,0.013) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(192,132,252,0.013) 1px, transparent 1px);
-      background-size: 48px 48px;
-      pointer-events: none; z-index: 0;
-    }
-
-    .glow-tl {
-      position: fixed; top: -120px; left: -80px;
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, rgba(192,132,252,0.055) 0%, transparent 70%);
-      pointer-events: none; z-index: 0;
-    }
-    .glow-br {
-      position: fixed; bottom: -80px; right: -100px;
-      width: 420px; height: 420px;
-      background: radial-gradient(circle, rgba(96,165,250,0.04) 0%, transparent 70%);
-      pointer-events: none; z-index: 0;
-    }
-
-    .container {
-      position: relative; z-index: 1;
-      max-width: 1160px;
-      margin: 0 auto;
-      padding: 0 28px 100px;
-    }
-
-    /* HEADER */
-    header {
-      padding: 52px 0 40px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 48px;
-      animation: fadeDown 0.6s ease both;
-    }
-    .header-inner {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 24px;
-      flex-wrap: wrap;
-    }
-    .brand { display: flex; flex-direction: column; gap: 10px; }
-    .brand-tag {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 10px; font-weight: 500;
-      letter-spacing: 0.28em; color: var(--accent);
-      text-transform: uppercase;
-      background: rgba(192,132,252,0.07);
-      border: 1px solid rgba(192,132,252,0.2);
-      padding: 4px 12px;
-      display: inline-block; width: fit-content;
-    }
-    h1 {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: clamp(22px, 4vw, 38px);
-      font-weight: 600; color: var(--white);
-      line-height: 1.05; letter-spacing: -0.03em;
-    }
-    h1 em { font-style: normal; color: var(--accent); }
-    .brand-sub {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 12px; color: var(--muted2); letter-spacing: 0.04em;
-    }
-    .header-right {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px; color: var(--muted);
-      text-align: right; line-height: 2;
-    }
-    .live-dot {
-      display: inline-block; width: 7px; height: 7px;
-      background: var(--green); border-radius: 50%; margin-right: 6px;
-      animation: pulse 2.2s ease infinite;
-    }
-
-    /* FUNNEL */
-    .funnel-strip {
-      display: flex; gap: 0;
-      margin-bottom: 44px;
-      animation: fadeDown 0.6s 0.1s ease both;
-      overflow-x: auto;
-    }
-    .funnel-step { display: flex; align-items: center; flex: 1; min-width: 0; }
-    .funnel-box {
-      flex: 1;
-      background: var(--surface);
-      border: 1px solid var(--border2);
-      border-right: none;
-      padding: 14px 18px; min-width: 0;
-    }
-    .funnel-step:last-child .funnel-box {
-      border-right: 1px solid rgba(192,132,252,0.35);
-      border-color: rgba(192,132,252,0.35);
-      background: rgba(192,132,252,0.04);
-    }
-    .funnel-label {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 9px; font-weight: 500;
-      letter-spacing: 0.18em; color: var(--muted);
-      text-transform: uppercase; margin-bottom: 4px;
-    }
-    .funnel-num {
-      font-family: 'Syne', sans-serif;
-      font-size: 22px; font-weight: 800;
-      color: var(--white); letter-spacing: -0.02em;
-    }
-    .funnel-step:last-child .funnel-num { color: var(--accent); }
-    .funnel-arrow {
-      font-size: 14px; color: var(--border2);
-      padding: 0 2px; flex-shrink: 0; align-self: center;
-    }
-
-    /* STAT CARDS */
-    .stats-row {
-      display: flex; gap: 14px; margin-bottom: 44px;
-      flex-wrap: wrap;
-      animation: fadeDown 0.6s 0.15s ease both;
-    }
-    .stat-card {
-      flex: 1; min-width: 130px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 16px 20px;
-    }
-    .stat-num {
-      font-family: 'Syne', sans-serif;
-      font-size: 26px; font-weight: 800;
-      color: var(--white); letter-spacing: -0.02em;
-    }
-    .stat-num.purple { color: var(--accent); }
-    .stat-num.green  { color: var(--green); }
-    .stat-lbl {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 10px; color: var(--muted);
-      text-transform: uppercase; letter-spacing: 0.15em; margin-top: 3px;
-    }
-
-    /* SECTION HEADER */
-    .section-header {
-      display: flex; align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-      animation: fadeDown 0.6s 0.18s ease both;
-    }
-    .section-title {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px; font-weight: 500;
-      letter-spacing: 0.22em; color: var(--accent);
-      text-transform: uppercase;
-    }
-    .exchange-badge {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 10px; color: var(--muted);
-      background: var(--surface);
-      border: 1px solid var(--border2);
-      padding: 4px 10px; letter-spacing: 0.1em;
-    }
-
-    /* TABLE */
-    .table-wrap { overflow-x: auto; animation: fadeUp 0.6s 0.22s ease both; }
-    table { width: 100%; border-collapse: collapse; font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
-    thead tr { border-bottom: 1px solid var(--border2); }
-    thead th {
-      padding: 10px 14px; text-align: left;
-      font-size: 10px; font-weight: 500;
-      letter-spacing: 0.15em; color: var(--muted);
-      text-transform: uppercase; white-space: nowrap;
-    }
-    thead th.right  { text-align: right; }
-    thead th.center { text-align: center; }
-    tbody tr {
-      border-bottom: 1px solid var(--border);
-      transition: background 0.15s;
-      animation: rowIn 0.4s ease both;
-    }
-    tbody tr:hover { background: rgba(192,132,252,0.025); }
-    tbody tr:nth-child(1)  { animation-delay: 0.22s; }
-    tbody tr:nth-child(2)  { animation-delay: 0.25s; }
-    tbody tr:nth-child(3)  { animation-delay: 0.28s; }
-    tbody tr:nth-child(4)  { animation-delay: 0.31s; }
-    tbody tr:nth-child(5)  { animation-delay: 0.34s; }
-    tbody tr:nth-child(6)  { animation-delay: 0.37s; }
-    tbody tr:nth-child(7)  { animation-delay: 0.40s; }
-    tbody tr:nth-child(8)  { animation-delay: 0.43s; }
-    tbody tr:nth-child(9)  { animation-delay: 0.46s; }
-    tbody tr:nth-child(10) { animation-delay: 0.49s; }
-    tbody tr:nth-child(11) { animation-delay: 0.52s; }
-    tbody tr:nth-child(12) { animation-delay: 0.55s; }
-    tbody tr:nth-child(13) { animation-delay: 0.58s; }
-    tbody tr:nth-child(14) { animation-delay: 0.61s; }
-    tbody tr:nth-child(15) { animation-delay: 0.64s; }
-    tbody tr:nth-child(16) { animation-delay: 0.67s; }
-    tbody tr:nth-child(17) { animation-delay: 0.70s; }
-    tbody tr:nth-child(18) { animation-delay: 0.73s; }
-    tbody tr:nth-child(19) { animation-delay: 0.76s; }
-    tbody tr:nth-child(20) { animation-delay: 0.79s; }
-    tbody td { padding: 13px 14px; white-space: nowrap; }
-    tbody td.right  { text-align: right; }
-    tbody td.center { text-align: center; }
-
-    .rank-num {
-      font-family: 'Syne', sans-serif;
-      font-size: 20px; font-weight: 800; color: var(--border2);
-    }
-    tr:nth-child(1) .rank-num { color: var(--accent); }
-    tr:nth-child(2) .rank-num { color: rgba(192,132,252,0.55); }
-    tr:nth-child(3) .rank-num { color: rgba(192,132,252,0.32); }
-
-    .ticker-main {
-      font-weight: 500; color: var(--white);
-      letter-spacing: 1px; display: block;
-    }
-    .company-name {
-      font-size: 11px; color: var(--muted2);
-      margin-top: 2px; display: block;
-    }
-
-    .sector-pill {
-      font-size: 9px; font-weight: 500;
-      letter-spacing: 0.08em;
-      padding: 2px 8px;
-      border: 1px solid var(--border2);
-      color: var(--muted);
-      background: rgba(255,255,255,0.025);
-      white-space: nowrap;
-    }
-
-    .fip-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; }
-    .fip-bar-bg { width: 40px; height: 3px; background: var(--border2); border-radius: 2px; overflow: hidden; }
-    .fip-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--green), var(--accent)); }
-
-    .mom-pos { color: var(--green); }
-    .mom-neg { color: var(--red); }
-
-    .fscore-badge {
-      display: inline-block; font-size: 11px; font-weight: 500;
-      padding: 2px 8px; border-radius: 2px;
-    }
-    .fs-good { color: var(--green);  background: rgba(52,211,153,0.1);  border: 1px solid rgba(52,211,153,0.25); }
-    .fs-mid  { color: var(--gold);   background: rgba(251,191,36,0.08);  border: 1px solid rgba(251,191,36,0.2); }
-    .fs-weak { color: var(--red);    background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); }
-    .fs-na   { color: var(--muted);  background: rgba(255,255,255,0.03); border: 1px solid var(--border2); }
-
-    .rsl-ok  { color: var(--green); }
-    .rsl-mid { color: var(--gold); }
-    .rsl-low { color: var(--muted2); }
-
-    .rank-change {
-      display: inline-flex; align-items: center; gap: 3px;
-      padding: 2px 7px; font-size: 11px; font-weight: 500;
-    }
-    .rank-up   { color: var(--green); background: rgba(52,211,153,0.08); }
-    .rank-down { color: var(--red);   background: rgba(248,113,113,0.08); }
-    .rank-same { color: var(--muted); background: rgba(255,255,255,0.04); }
-    .rank-new  { color: var(--gold);  background: rgba(251,191,36,0.08); font-size: 10px; letter-spacing: 0.1em; }
-
-    /* METHODOLOGY */
-    .method-box {
-      margin-top: 72px;
-      background: var(--surface);
-      border: 1px solid var(--border2);
-      border-left: 3px solid var(--accent);
-      padding: 36px 40px;
-      animation: fadeUp 0.6s 0.4s ease both;
-    }
-    .method-box h2 {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px; font-weight: 500;
-      letter-spacing: 0.22em; color: var(--accent);
-      text-transform: uppercase; margin-bottom: 24px;
-    }
-    .method-steps {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 28px 40px;
-    }
-    .method-step { position: relative; padding-left: 28px; }
-    .step-num {
-      position: absolute; left: 0; top: 0;
-      font-family: 'Syne', sans-serif;
-      font-size: 18px; font-weight: 800;
-      color: rgba(192,132,252,0.18); line-height: 1;
-    }
-    .method-step h3 {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px; font-weight: 500;
-      color: var(--accent);
-      letter-spacing: 0.15em; text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-    .method-step p { font-size: 12px; color: var(--muted2); line-height: 1.7; }
-    .method-step p strong { color: var(--text); }
-    .formula-row {
-      display: flex; gap: 10px; flex-wrap: wrap;
-      margin-top: 28px; padding-top: 24px;
-      border-top: 1px solid var(--border);
-      align-items: center;
-    }
-    .formula-lbl {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 10px; color: var(--muted);
-      letter-spacing: 0.1em; text-transform: uppercase;
-    }
-    .fpill {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 12px; padding: 6px 14px; border: 1px solid;
-    }
-    .fp-mom  { color: var(--accent); border-color: rgba(192,132,252,0.3); background: rgba(192,132,252,0.06); }
-    .fp-fip  { color: var(--green);  border-color: rgba(52,211,153,0.3);  background: rgba(52,211,153,0.06); }
-    .fp-fs   { color: var(--gold);   border-color: rgba(251,191,36,0.3);  background: rgba(251,191,36,0.06); }
-    .fp-rsl  { color: var(--blue);   border-color: rgba(96,165,250,0.3);  background: rgba(96,165,250,0.06); }
-
-    /* RESEARCH */
-    .research-box {
-      margin-top: 24px;
-      background: var(--surface);
-      border: 1px solid var(--border2);
-      border-left: 3px solid var(--gold);
-      padding: 36px 40px;
-      animation: fadeUp 0.6s 0.48s ease both;
-    }
-    .research-box h2 {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px; font-weight: 500;
-      letter-spacing: 0.22em; color: var(--gold);
-      text-transform: uppercase; margin-bottom: 8px;
-    }
-    .research-citation {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px; color: var(--muted);
-      margin-bottom: 28px; font-style: italic;
-    }
-    .research-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 24px 40px;
-    }
-    .research-item h3 {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px; color: var(--gold);
-      letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 8px;
-    }
-    .research-item p { font-size: 12px; color: var(--muted2); line-height: 1.7; }
-    .research-item p strong { color: var(--text); }
-
-    /* LOADER / ERROR */
-    .loader {
-      display: flex; align-items: center; justify-content: center;
-      min-height: 300px; gap: 12px;
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 13px; color: var(--muted);
-    }
-    .spinner {
-      width: 18px; height: 18px;
-      border: 2px solid var(--border2);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    .error-msg {
-      display: none; padding: 20px;
-      border: 1px solid rgba(248,113,113,0.3);
-      color: var(--red);
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 13px;
-      background: rgba(248,113,113,0.05);
-    }
-
-    /* FOOTER */
-    footer {
-      margin-top: 72px; padding-top: 24px;
-      border-top: 1px solid var(--border);
-      display: flex; justify-content: space-between;
-      align-items: center; flex-wrap: wrap; gap: 12px;
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px; color: var(--muted);
-      animation: fadeDown 0.6s 0.55s ease both;
-    }
-    footer a { color: var(--muted); text-decoration: none; }
-    footer a:hover { color: var(--accent); }
-
-    @keyframes fadeDown {
-      from { opacity: 0; transform: translateY(-12px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes rowIn {
-      from { opacity: 0; transform: translateX(-8px); }
-      to   { opacity: 1; transform: translateX(0); }
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes pulse {
-      0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(52,211,153,0.5); }
-      50%      { box-shadow: 0 0 0 5px rgba(52,211,153,0); }
-    }
+    body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; font-weight: 300; min-height: 100vh; }
+    a { color: var(--line); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 32px 24px 48px; display: flex; flex-direction: column; gap: 24px; }
+    .top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted2); border-bottom: 1px solid var(--border); padding-bottom: 14px; }
+    .top .tag { color: var(--teal); letter-spacing: .12em; text-transform: uppercase; }
+    h1 { font-family: 'IBM Plex Mono', monospace; font-weight: 500; color: var(--white); font-size: clamp(26px, 4vw, 40px); line-height: 1.15; }
+    h1 em { font-style: normal; color: var(--teal); }
+    .lede { color: var(--muted2); max-width: 820px; margin-top: 10px; line-height: 1.6; }
+    .card { background: var(--surface); border: 1px solid var(--border2); border-radius: 6px; padding: 20px; }
+    .card h2 { font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 16px; color: var(--white); }
+    .note { color: var(--muted2); font-size: 13px; line-height: 1.55; margin-top: 6px; }
+    .summary-text { font-size: 15px; line-height: 1.7; color: var(--text); margin-top: 10px; max-width: 980px; }
+    .summary-text b { color: var(--white); font-weight: 400; }
+    .summary-text .up { color: var(--up); } .summary-text .down { color: var(--down); }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 16px; }
+    .kpi { background: var(--surface2); border: 1px solid var(--border); border-radius: 5px; padding: 12px 14px; }
+    .kpi-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted2); }
+    .kpi-val { font-family: 'IBM Plex Mono', monospace; font-size: 24px; color: var(--white); margin-top: 6px; }
+    .kpi-sub { font-size: 12px; color: var(--muted2); margin-top: 4px; }
+    .tablewrap { overflow-x: auto; margin-top: 16px; }
+    table { width: 100%; border-collapse: collapse; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+    th, td { padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th:first-child, td:first-child { text-align: left; }
+    th { color: var(--muted2); font-weight: 400; vertical-align: bottom; }
+    td:first-child { color: var(--white); font-family: 'IBM Plex Sans', sans-serif; }
+    tbody tr { cursor: pointer; }
+    tbody tr:hover td { background: var(--surface2); }
+    .up { color: var(--up); } .down { color: var(--down); }
+    .bar { display: inline-block; height: 8px; border-radius: 2px; vertical-align: middle; }
+    .toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+    .seg { display: inline-flex; border: 1px solid var(--border2); border-radius: 4px; overflow: hidden; }
+    .seg button { background: var(--surface2); color: var(--muted2); border: 0; padding: 7px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; cursor: pointer; }
+    .seg button + button { border-left: 1px solid var(--border2); }
+    .seg button[aria-pressed="true"] { background: var(--border2); color: var(--white); }
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; }
+    .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--muted2); }
+    .sw { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: 3px; }
+    .sectors { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 540px), 1fr)); gap: 20px; }
+    .sec-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+    .sec-members { font-size: 12px; color: var(--muted2); margin-top: 4px; line-height: 1.5; }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 3px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .06em; white-space: nowrap; }
+    .badge.up { background: rgba(0,229,160,0.10); } .badge.down { background: rgba(255,92,108,0.10); }
+    .sec-stats { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 10px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+    .sec-stats .lbl { display: block; color: var(--muted2); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+    .sec-stats .val { color: var(--white); }
+    .sec-stats .val.up { color: var(--up); } .sec-stats .val.down { color: var(--down); }
+    .chart { position: relative; margin-top: 10px; min-height: 260px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .chip { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 3px 8px; border: 1px solid var(--border2); border-radius: 12px; background: var(--surface2); white-space: nowrap; }
+    .chip .n { color: var(--text); font-family: 'IBM Plex Sans', sans-serif; margin-right: 6px; }
+    .tick { font-family: 'IBM Plex Mono', monospace; font-size: 11px; fill: var(--muted2); }
+    .tip { position: absolute; pointer-events: none; background: #0a1016; border: 1px solid var(--border2); border-radius: 5px; padding: 6px 9px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; box-shadow: 0 6px 18px rgba(0,0,0,.45); z-index: 5; }
+    .tip .dim { color: var(--muted2); }
+    details { color: var(--muted2); font-size: 13px; line-height: 1.6; }
+    details summary { cursor: pointer; color: var(--text); font-family: 'IBM Plex Mono', monospace; }
+    details dt { color: var(--text); margin-top: 10px; }
+    footer { border-top: 1px solid var(--border); padding-top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .err { color: var(--down); font-family: 'IBM Plex Mono', monospace; }
   </style>
 </head>
 <body>
+<div class="wrap">
 
-<div class="glow-tl"></div>
-<div class="glow-br"></div>
+  <div class="top">
+    <a href="https://alex30free.github.io/stocklab/">← StockLab</a>
+    <span class="tag">Sector Trends · Sweden</span>
+    <span id="updated">Loading…</span>
+  </div>
 
-<div class="container">
-
-  <!-- HEADER -->
   <header>
-    <div class="header-inner">
-      <div class="brand">
-        <div class="brand-tag">Quality Momentum · Sweden</div>
-        <h1>Alpha Architect<br><em>Quality Momentum</em></h1>
-        <div class="brand-sub">12_2 momentum · FIP quality filter · F-Score gate · Nasdaq Stockholm</div>
-      </div>
-      <div class="header-right">
-        <div><span class="live-dot"></span><span id="updated-time">Loading…</span></div>
-        <div id="stocks-screened">— stocks screened</div>
-        <div>12_2 skip-month momentum</div>
-        <div>Frog-in-the-Pan consistency filter</div>
-        <div>Source: Yahoo Finance + Börsdata</div>
-      </div>
-    </div>
+    <h1>Swedish Sector<br><em>Trends</em></h1>
+    <p class="lede">Ten home-made sector indices from Swedish stocks, each with its 40-week moving average (MA40, about 200 trading days). A sector above its MA40 is in an uptrend; below it, a downtrend. Updated automatically every Friday.</p>
   </header>
 
-  <!-- FUNNEL -->
-  <div class="funnel-strip" id="funnel-strip"></div>
+  <section class="card" id="summary">
+    <h2>The situation right now</h2>
+    <p class="summary-text" id="summary-text">–</p>
+    <div class="kpis">
+      <div class="kpi"><div class="kpi-label">Sectors in uptrend</div><div class="kpi-val" id="k-up">–</div><div class="kpi-sub" id="k-up-sub"></div></div>
+      <div class="kpi"><div class="kpi-label">Stocks above MA40</div><div class="kpi-val" id="k-stocks">–</div><div class="kpi-sub" id="k-stocks-sub"></div></div>
+      <div class="kpi"><div class="kpi-label">Strongest sector</div><div class="kpi-val" id="k-best">–</div><div class="kpi-sub" id="k-best-sub"></div></div>
+      <div class="kpi"><div class="kpi-label">Weakest sector</div><div class="kpi-val" id="k-worst">–</div><div class="kpi-sub" id="k-worst-sub"></div></div>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Sector</th><th>Trend</th><th>vs MA40</th><th></th><th>Since</th><th>4 weeks</th><th>52 weeks</th><th>Stocks above<br>own MA40</th></tr></thead>
+        <tbody id="t-sum"></tbody>
+      </table>
+    </div>
+    <p class="note">Sorted by distance to the 40-week moving average. Click a row to jump to the sector's chart.</p>
+  </section>
 
-  <!-- STATS -->
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-num purple" id="stat-universe">—</div>
-      <div class="stat-lbl">Universe</div>
+  <div class="toolbar">
+    <div class="legend">
+      <span><span class="sw" style="background:var(--line)"></span>Sector index (equal weight)</span>
+      <span><span class="sw" style="background:var(--ma)"></span>40-week moving average</span>
     </div>
-    <div class="stat-card">
-      <div class="stat-num" id="stat-new">—</div>
-      <div class="stat-lbl">New Entries</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num green" id="stat-top-mom">—</div>
-      <div class="stat-lbl">Top 12_2 Mom</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num" id="stat-avg-fip">—</div>
-      <div class="stat-lbl">Avg FIP Score</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num" id="stat-fscore-ok">—</div>
-      <div class="stat-lbl">F-Score ≥ 5</div>
-    </div>
-  </div>
-
-  <!-- ERROR -->
-  <div class="error-msg" id="error-msg">
-    ⚠ Could not load screener_data.json. Ensure it exists and GitHub Pages is enabled.
-  </div>
-
-  <!-- TABLE HEADER -->
-  <div class="section-header">
-    <div class="section-title">Top 20 · Quality Momentum Ranking</div>
-    <div class="exchange-badge">Nasdaq Stockholm · SEK</div>
-  </div>
-
-  <!-- TABLE -->
-  <div class="table-wrap" id="table-wrap">
-    <div class="loader" id="loader">
-      <div class="spinner"></div>
-      Fetching latest data…
-    </div>
-    <table id="main-table" style="display:none">
-      <thead>
-        <tr>
-          <th>Rank</th>
-          <th>Ticker / Company</th>
-          <th>Sector</th>
-          <th class="right">12_2 Mom</th>
-          <th class="right">FIP Quality</th>
-          <th class="right">RSL</th>
-          <th class="right">F-Score</th>
-          <th class="right">Price (SEK)</th>
-          <th class="center">vs Last Week</th>
-        </tr>
-      </thead>
-      <tbody id="main-tbody"></tbody>
-    </table>
-  </div>
-
-  <!-- METHODOLOGY -->
-  <div class="method-box">
-    <h2>Methodology — 5-Step Funnel</h2>
-    <div class="method-steps">
-      <div class="method-step">
-        <div class="step-num">01</div>
-        <h3>Universe</h3>
-        <p>275 Swedish stocks (Large, Mid &amp; Small Cap) from Nasdaq Stockholm. Live prices fetched weekly via Yahoo Finance. <strong>F-Score data from Börsdata CSV</strong> — Piotroski's 9-signal financial health rating.</p>
+    <div class="controls">
+      <div class="seg" id="range-seg" role="group" aria-label="Period">
+        <button type="button" data-weeks="104" aria-pressed="false">2y</button>
+        <button type="button" data-weeks="260" aria-pressed="false">5y</button>
+        <button type="button" data-weeks="520" aria-pressed="false">10y</button>
+        <button type="button" data-weeks="0" aria-pressed="true">Since 2006</button>
       </div>
-      <div class="method-step">
-        <div class="step-num">02</div>
-        <h3>Outlier Removal</h3>
-        <p>Remove <strong>top 5% by 1-month return</strong> — lottery stocks whose recent spikes are unlikely to persist. Also remove <strong>bottom 10% by market beta</strong> — stocks with near-zero market trend correlation.</p>
-      </div>
-      <div class="method-step">
-        <div class="step-num">03</div>
-        <h3>12_2 Momentum</h3>
-        <p>Rank all remaining stocks by <strong>12-month return, skipping the most recent month</strong> (t-12 to t-1). Skip-month convention avoids short-term reversal contamination. Keep the top 50% by this score.</p>
-      </div>
-      <div class="method-step">
-        <div class="step-num">04</div>
-        <h3>FIP Quality Filter</h3>
-        <p><strong>FIP = sign(12m) × (%negative days − %positive days).</strong> Lower FIP = more positive trading days = smoother trend. From the momentum top 50%, the 50 with the lowest FIP are kept. Eliminates "big jump" stocks.</p>
-      </div>
-      <div class="method-step">
-        <div class="step-num">05</div>
-        <h3>Quality Gate (F-Score)</h3>
-        <p>Piotroski <strong>F-Score ≥ 5</strong> (out of 9) is a soft quality flag. Scores 7–9 = strong financial health. Shown in the table as a final sanity check. Does not hard-exclude but heavily informs conviction.</p>
-      </div>
-      <div class="method-step">
-        <div class="step-num">06</div>
-        <h3>Final Top 20</h3>
-        <p>From the FIP-filtered set, re-rank by 12_2 momentum. <strong>Top 20 published every Friday</strong> after Nasdaq Stockholm closes (~18:30 CET) via automated GitHub Actions.</p>
-      </div>
-    </div>
-    <div class="formula-row">
-      <span class="formula-lbl">Signals</span>
-      <span class="fpill fp-mom">12_2 Momentum (t-12 → t-1)</span>
-      <span class="fpill fp-fip">FIP Consistency</span>
-      <span class="fpill fp-fs">F-Score ≥ 5</span>
-      <span class="fpill fp-rsl">RSL ≥ 1.0</span>
-    </div>
-  </div>
-
-  <!-- RESEARCH -->
-  <div class="research-box">
-    <h2>What the Research Shows</h2>
-    <div class="research-citation">
-      Alpha Architect — "The Quantitative Momentum Investing Philosophy" (Vogel &amp; Gray, 2016) ·
-      Jegadeesh &amp; Titman (1993) · Asness, Moskowitz &amp; Pedersen (2013)
-    </div>
-    <div class="research-grid">
-      <div class="research-item">
-        <h3>Why Momentum Works</h3>
-        <p>Stocks that outperformed over the past 12 months tend to continue outperforming over the next 3–12 months. Jegadeesh &amp; Titman (1993) documented <strong>excess returns of ~1% per month</strong> for high-momentum stocks, replicated globally across decades.</p>
-      </div>
-      <div class="research-item">
-        <h3>The Skip-Month Rule</h3>
-        <p>Using 12-month return <em>excluding</em> the most recent month (12_2) avoids <strong>short-term reversal</strong> — where the very best recent performers mean-revert. This is standard convention in all academic momentum research.</p>
-      </div>
-      <div class="research-item">
-        <h3>Frog-in-the-Pan</h3>
-        <p>Stocks with <strong>gradual, consistent daily increases</strong> outperform stocks that gained the same return in a few big days. The FIP filter separates durable trend from volatile spike momentum — the key insight of the Alpha Architect approach.</p>
-      </div>
-      <div class="research-item">
-        <h3>Quality + Momentum</h3>
-        <p>Combining momentum with Piotroski F-Score reduces "dead cat bounce" exposure. Stocks with strong momentum <em>and</em> improving fundamentals show <strong>more persistent outperformance</strong> with lower tail risk than pure price momentum alone.</p>
+      <div class="seg" id="scale-seg" role="group" aria-label="Scale">
+        <button type="button" data-scale="lin" aria-pressed="true">Linear</button>
+        <button type="button" data-scale="log" aria-pressed="false">Log</button>
       </div>
     </div>
   </div>
 
-  <!-- FOOTER -->
+  <div class="sectors" id="sectors"></div>
+
+  <details>
+    <summary>How the indices are built</summary>
+    <dl>
+      <dt>Sector index</dt>
+      <dd>Each sector is an equal-weight index of its stocks, starting at 100 in January 2006. Every week the index moves by the average weekly price change of its stocks, so a 2 kr stock counts as much as a 900 kr stock. Stocks listed later (for example Evolution, Epiroc, Sagax) join from their first full week without making the line jump.</dd>
+      <dt>Prices</dt>
+      <dd>Weekly closing prices (the last trading day of each week) from Yahoo Finance, adjusted by Yahoo for share splits and spin-offs. Dividends are not added back, so it is a price index, like a normal price chart.</dd>
+      <dt>MA40</dt>
+      <dd>The average of the last 40 weekly values, about 200 trading days. Above the MA40 = uptrend, below = downtrend. "Since" is the week the line last crossed its MA40.</dd>
+      <dt>Caveat</dt>
+      <dd>Moving-average signals lag and can flip back and forth in sideways markets. This is an overview tool, not a buy or sell signal.</dd>
+    </dl>
+  </details>
+
   <footer>
     <span>⚠ For informational purposes only — not financial advice.</span>
-    <span><a href="https://alex30free.github.io/">← StockLab Home</a></span>
+    <span>Data: Yahoo Finance · <a href="https://alex30free.github.io/stocklab/">StockLab</a></span>
   </footer>
-
 </div>
 
 <script>
-function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-function fmtSEK(n) {
-  if (n==null) return '—';
-  return n.toLocaleString('sv-SE',{minimumFractionDigits:2,maximumFractionDigits:2});
-}
-function fmtPct(n,plus=true) {
-  if (n==null) return '—';
-  return (plus&&n>=0?'+':'')+n.toFixed(1)+'%';
-}
+(function () {
+  let DATA = null, WEEKS = 0, SCALE = 'lin';
+  const f1 = d3.format('.1f');
+  const pct = (v) => v == null ? '–' : (v >= 0 ? '+' : '') + f1(v) + '%';
+  const fday = d3.utcFormat('%-d %b %Y');
+  const fidx = (v) => v == null ? '–' : (v >= 1000 ? d3.format(',.0f')(v) : f1(v));
 
-// FIP quality bar: lower FIP = smoother momentum = higher quality %
-function fipQualityPct(fip) {
-  if (fip==null) return 0;
-  const min=-0.40, max=0.15;
-  const c=Math.max(min,Math.min(max,fip));
-  return Math.round((1-(c-min)/(max-min))*100);
-}
-
-function fscoreBadge(fs) {
-  if (fs==null) return '<span class="fscore-badge fs-na">N/A</span>';
-  const cls=fs>=7?'fs-good':fs>=5?'fs-mid':'fs-weak';
-  return `<span class="fscore-badge ${cls}">${fs}/9</span>`;
-}
-
-function rankBadge(rank,prev) {
-  if (prev==null) return '<span class="rank-change rank-new">NEW</span>';
-  const d=prev-rank;
-  if (d>0) return `<span class="rank-change rank-up">▲${d} #${prev}</span>`;
-  if (d<0) return `<span class="rank-change rank-down">▼${Math.abs(d)} #${prev}</span>`;
-  return `<span class="rank-change rank-same">— #${prev}</span>`;
-}
-
-async function loadData() {
-  try {
-    const res=await fetch('screener_data.json?_='+Date.now());
-    if (!res.ok) throw new Error('not found');
-    render(await res.json());
-  } catch(e) {
-    document.getElementById('loader').style.display='none';
-    document.getElementById('error-msg').style.display='block';
+  function weekDate(k) {
+    const [y, m, d] = DATA.weeks.start.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d + 7 * k));
   }
-}
+  // series with MA40 and trend facts
+  function analyse(values) {
+    const rows = values.map((v, k) => {
+      let ma = null;
+      if (k >= 39) { const w = values.slice(k - 39, k + 1); if (w.every((q) => q != null)) ma = w.reduce((a, q) => a + q, 0) / 40; }
+      return { k, date: weekDate(k), v, ma };
+    }).filter((r) => r.v != null);
+    const last = rows[rows.length - 1];
+    if (!last || last.ma == null) return { rows, last };
+    const above = last.v >= last.ma;
+    let i = rows.length - 1;
+    while (i > 0 && rows[i - 1].ma != null && (rows[i - 1].v >= rows[i - 1].ma) === above) i--;
+    const back = (n) => rows.length > n ? (last.v / rows[rows.length - 1 - n].v - 1) * 100 : null;
+    return { rows, last, above, diff: (last.v / last.ma - 1) * 100, since: rows[i].date, crossedWeeksAgo: rows.length - 1 - i, ch4: back(4), ch52: back(52) };
+  }
+  function measure(svg, strings) {
+    const g = svg.append('g').attr('visibility', 'hidden'); let w = 0;
+    strings.forEach((s) => { w = Math.max(w, g.append('text').attr('class', 'tick').text(s).node().getComputedTextLength()); });
+    g.remove(); return w;
+  }
+  function el(tag, cls, text, parent) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; if (parent) parent.appendChild(e); return e; }
 
-function render(data) {
-  document.getElementById('loader').style.display='none';
-  const top20=data.top20||[], funnel=data.funnel||{};
+  let A = {};   // analysis per sector id and per stock symbol
+  function computeAll() {
+    A = { sec: {}, stk: {} };
+    DATA.sectors.forEach((s) => { A.sec[s.id] = analyse(DATA.index[s.id]); });
+    Object.entries(DATA.stocks).forEach(([sym, st]) => { A.stk[sym] = analyse(st.close); });
+  }
 
-  document.getElementById('updated-time').textContent='Updated: '+data.updated;
-  document.getElementById('stocks-screened').textContent=
-    `${data.total_valid} of ${data.total_attempted} stocks returned valid data`;
+  function drawSummary() {
+    const secs = DATA.sectors.filter((s) => A.sec[s.id].diff != null);
+    const up = secs.filter((s) => A.sec[s.id].above), down = secs.filter((s) => !A.sec[s.id].above);
+    const sorted = secs.slice().sort((a, b) => A.sec[b.id].diff - A.sec[a.id].diff);
+    const best = sorted[0], worst = sorted[sorted.length - 1];
+    const stocks = Object.entries(A.stk).filter(([, a]) => a.diff != null);
+    const sUp = stocks.filter(([, a]) => a.above).length;
+    document.getElementById('k-up').textContent = up.length + ' of ' + secs.length;
+    document.getElementById('k-up-sub').textContent = down.length ? down.length + ' in downtrend' : 'none in downtrend';
+    document.getElementById('k-stocks').textContent = sUp + ' of ' + stocks.length;
+    document.getElementById('k-stocks-sub').textContent = Math.round(sUp / stocks.length * 100) + '% of all stocks';
+    document.getElementById('k-best').textContent = best.name;
+    document.getElementById('k-best-sub').textContent = pct(A.sec[best.id].diff) + ' vs MA40 · 52w ' + pct(A.sec[best.id].ch52);
+    document.getElementById('k-worst').textContent = worst.name;
+    document.getElementById('k-worst-sub').textContent = pct(A.sec[worst.id].diff) + ' vs MA40 · 52w ' + pct(A.sec[worst.id].ch52);
 
-  // Funnel
-  const funnelDefs=[
-    {label:'Universe',     key:'universe'},
-    {label:'Valid Data',   key:'after_data_filter'},
-    {label:'- Lottery Rm', key:'after_lottery_rm'},
-    {label:'Mom Top 50%',  key:'after_momentum_top'},
-    {label:'FIP Top 50',   key:'after_fip'},
-    {label:'Final Top 20', key:'final_top20'},
-  ];
-  const fEl=document.getElementById('funnel-strip');
-  fEl.innerHTML=funnelDefs.map((f,i)=>{
-    const v=funnel[f.key]??'—';
-    const arrow=i<funnelDefs.length-1?'<div class="funnel-arrow">›</div>':'';
-    return `<div class="funnel-step"><div class="funnel-box"><div class="funnel-label">${f.label}</div><div class="funnel-num">${v}</div></div>${arrow}</div>`;
-  }).join('');
+    // summary sentence(s), built from the data
+    const p = document.getElementById('summary-text'); p.replaceChildren();
+    const t = (s) => p.appendChild(document.createTextNode(s));
+    const b = (s, cls) => el('b', cls || null, s, p);
+    const list = (arr) => arr.map((s) => s.name).join(', ');
+    const breadth = up.length / secs.length;
+    t('Overall the market looks '); b(breadth >= 0.7 ? 'broadly strong' : breadth >= 0.5 ? 'mixed, leaning positive' : breadth >= 0.3 ? 'mixed, leaning weak' : 'broadly weak', breadth >= 0.5 ? 'up' : 'down');
+    t(': '); b(up.length + ' of ' + secs.length); t(' sectors trade above their 40-week moving average');
+    if (up.length) { t(' ('); t(list(up)); t(')'); }
+    t('. ');
+    if (down.length) { t('In downtrend: '); b(list(down), 'down'); t('. '); }
+    t('Strongest relative to its trend is '); b(best.name, 'up'); t(' (' + pct(A.sec[best.id].diff) + '), weakest is '); b(worst.name, 'down'); t(' (' + pct(A.sec[worst.id].diff) + '). ');
+    const recent = secs.filter((s) => A.sec[s.id].crossedWeeksAgo <= 4).sort((a, b2) => A.sec[a.id].crossedWeeksAgo - A.sec[b2.id].crossedWeeksAgo);
+    if (recent.length) {
+      t('Recent trend changes (last 4 weeks): ');
+      recent.forEach((s, i) => { if (i) t(', '); b(s.name, A.sec[s.id].above ? 'up' : 'down'); t(A.sec[s.id].above ? ' turned up' : ' turned down'); t(' (' + fday(A.sec[s.id].since) + ')'); });
+      t('. ');
+    } else t('No sector has crossed its MA40 in the last 4 weeks. ');
+    t('Across all ' + stocks.length + ' stocks, '); b(sUp + ' (' + Math.round(sUp / stocks.length * 100) + '%)'); t(' are above their own MA40.');
 
-  // Stats
-  const newEntries=top20.filter(s=>!s.prev_rank).length;
-  const fscoreOk=top20.filter(s=>s.fscore_ok).length;
-  const topMom=top20.length?top20[0].mom_12_2:null;
-  const fipsWithVal=top20.filter(s=>s.fip!=null);
-  const avgFip=fipsWithVal.length?(fipsWithVal.reduce((a,s)=>a+s.fip,0)/fipsWithVal.length).toFixed(3):'—';
+    // table
+    const tb = document.getElementById('t-sum'); tb.replaceChildren();
+    const maxAbs = d3.max(sorted, (s) => Math.abs(A.sec[s.id].diff)) || 1;
+    sorted.forEach((s) => {
+      const a = A.sec[s.id], tr = el('tr', null, null, tb);
+      tr.addEventListener('click', () => document.getElementById('sec-' + s.id).scrollIntoView({ behavior: 'smooth', block: 'start' }));
+      el('td', null, s.name, tr);
+      el('td', a.above ? 'up' : 'down', a.above ? '▲ Up' : '▼ Down', tr);
+      el('td', a.above ? 'up' : 'down', pct(a.diff), tr);
+      const tdb = el('td', null, null, tr); const bar = el('span', 'bar', null, tdb);
+      bar.style.width = Math.max(2, Math.abs(a.diff) / maxAbs * 80) + 'px'; bar.style.background = a.above ? 'var(--up)' : 'var(--down)';
+      el('td', null, fday(a.since), tr);
+      el('td', a.ch4 >= 0 ? 'up' : 'down', pct(a.ch4), tr);
+      el('td', a.ch52 >= 0 ? 'up' : 'down', pct(a.ch52), tr);
+      const m = s.members.filter((x) => A.stk[x] && A.stk[x].diff != null);
+      el('td', null, m.filter((x) => A.stk[x].above).length + ' / ' + m.length, tr);
+    });
+  }
 
-  document.getElementById('stat-universe').textContent=data.total_attempted;
-  document.getElementById('stat-new').textContent=newEntries;
-  document.getElementById('stat-top-mom').textContent=topMom!=null?fmtPct(topMom):'—';
-  document.getElementById('stat-avg-fip').textContent=avgFip;
-  document.getElementById('stat-fscore-ok').textContent=`${fscoreOk}/20`;
+  function drawSectors() {
+    const box = document.getElementById('sectors'); box.replaceChildren();
+    DATA.sectors.forEach((s) => {
+      const a = A.sec[s.id];
+      const card = el('section', 'card', null, box); card.id = 'sec-' + s.id;
+      const head = el('div', 'sec-head', null, card);
+      const left = el('div', null, null, head);
+      el('h2', null, s.name, left);
+      el('div', 'sec-members', s.members.map((m) => DATA.stocks[m] ? DATA.stocks[m].name : m).join(', ') + (s.missing && s.missing.length ? ' · missing data: ' + s.missing.join(', ') : ''), left);
+      if (a.diff != null) el('span', 'badge ' + (a.above ? 'up' : 'down'), a.above ? '▲ ABOVE MA40 · UPTREND' : '▼ BELOW MA40 · DOWNTREND', head);
+      const st = el('div', 'sec-stats', null, card);
+      [['Index', fidx(a.last && a.last.v)], ['MA40', fidx(a.last && a.last.ma)], ['vs MA40', pct(a.diff)], [a.above ? 'Above since' : 'Below since', a.since ? fday(a.since) : '–'], ['52 weeks', pct(a.ch52)]]
+        .forEach(([l, v], i) => { const d = el('div', null, null, st); el('span', 'lbl', l, d); const vv = el('span', 'val', v, d); if (i === 2 || i === 4) vv.className = 'val ' + ((i === 2 ? a.diff : a.ch52) >= 0 ? 'up' : 'down'); });
+      const ch = el('div', 'chart', null, card); ch.dataset.sid = s.id;
+      const chips = el('div', 'chips', null, card);
+      s.members.forEach((m) => {
+        const sa = A.stk[m]; if (!sa || sa.diff == null) return;
+        const c = el('span', 'chip ' + (sa.above ? 'up' : 'down'), null, chips);
+        el('span', 'n', DATA.stocks[m].name, c);
+        c.appendChild(document.createTextNode((sa.above ? '▲ ' : '▼ ') + pct(sa.diff)));
+        c.title = DATA.stocks[m].name + ': ' + (sa.above ? 'above' : 'below') + ' its own MA40 since ' + fday(sa.since);
+      });
+    });
+    drawCharts();
+  }
 
-  // Table
-  const tbody=document.getElementById('main-tbody');
-  tbody.innerHTML='';
-  top20.forEach((s,i)=>{
-    const rank=i+1;
-    const td=s.ticker_display||s.ticker.replace('.ST','');
-    const mc=s.mom_12_2>=0?'mom-pos':'mom-neg';
-    const rc=(s.rsl||0)>=1.15?'rsl-ok':(s.rsl||0)>=1.0?'rsl-mid':'rsl-low';
-    const fp=fipQualityPct(s.fip);
-    const tr=document.createElement('tr');
-    tr.innerHTML=`
-      <td><span class="rank-num">${String(rank).padStart(2,'0')}</span></td>
-      <td><span class="ticker-main">${esc(td)}</span><span class="company-name">${esc(s.name)}</span></td>
-      <td><span class="sector-pill">${esc(s.sector||'—')}</span></td>
-      <td class="right"><span class="${mc}">${fmtPct(s.mom_12_2)}</span></td>
-      <td class="right">
-        <div class="fip-badge">
-          <span style="color:var(--muted2);min-width:44px;text-align:right;font-size:11px">${s.fip!=null?s.fip.toFixed(3):'—'}</span>
-          <div class="fip-bar-bg"><div class="fip-bar-fill" style="width:${fp}%"></div></div>
-        </div>
-      </td>
-      <td class="right"><span class="${rc}">${s.rsl!=null?s.rsl.toFixed(3):'—'}</span></td>
-      <td class="right">${fscoreBadge(s.fscore)}</td>
-      <td class="right" style="color:var(--text)">${fmtSEK(s.price)}</td>
-      <td class="center">${rankBadge(rank,s.prev_rank)}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-  document.getElementById('main-table').style.display='table';
-}
+  function drawCharts() {
+    document.querySelectorAll('.chart[data-sid]').forEach((holder) => {
+      holder.replaceChildren();
+      const s = DATA.sectors.find((x) => x.id === holder.dataset.sid);
+      let rows = A.sec[s.id].rows;
+      if (WEEKS) rows = rows.slice(-WEEKS);
+      if (!rows.length) return;
+      const W = Math.max(300, holder.clientWidth), H = 260, mt = 10, mb = 24;
+      const svg = d3.select(holder).append('svg').attr('width', '100%').attr('height', H).attr('viewBox', `0 0 ${W} ${H}`);
+      const ext = d3.extent(rows.flatMap((r) => r.ma == null ? [r.v] : [r.v, r.ma]));
+      let y;
+      if (SCALE === 'log') {
+        const pad = Math.pow(ext[1] / ext[0], 0.04);
+        y = d3.scaleLog([ext[0] / pad, ext[1] * pad], [H - mb, mt]);
+      } else y = d3.scaleLinear(ext, [H - mb, mt]).nice();
+      let yt = y.ticks(SCALE === 'log' ? 6 : 5);
+      if (SCALE === 'log' && yt.length > 7) yt = yt.filter((v) => [1, 2, 5].includes(+String(Math.round(v))[0]));
+      if (SCALE === 'log' && yt.length > 7) yt = yt.filter((v) => +String(Math.round(v))[0] === 1);
+      const last = rows[rows.length - 1];
+      const left = measure(svg, yt.map(fidx)) + 8, right = measure(svg, [fidx(last.v)]) + 14;
+      const x = d3.scaleUtc(d3.extent(rows, (r) => r.date), [left, W - right]);
+      svg.append('g').selectAll('line').data(yt).join('line').attr('x1', left).attr('x2', W - right).attr('y1', y).attr('y2', y).attr('stroke', 'var(--border)');
+      svg.append('g').selectAll('text').data(yt).join('text').attr('class', 'tick').attr('x', left - 6).attr('y', y).attr('dy', '0.32em').attr('text-anchor', 'end').text(fidx);
+      const span = (last.date - rows[0].date) / (365.25 * 864e5);
+      svg.append('g').selectAll('text').data(x.ticks(span <= 2.5 ? (W < 560 ? 3 : 5) : (W < 560 ? 4 : 7))).join('text').attr('class', 'tick').attr('x', x).attr('y', H - 6).attr('text-anchor', 'middle')
+        .text(span <= 2.5 ? d3.utcFormat('%b %Y') : d3.utcFormat('%Y'));
+      svg.append('path').datum(rows).attr('d', d3.line().defined((r) => r.ma != null).x((r) => x(r.date)).y((r) => y(r.ma)))
+        .attr('fill', 'none').attr('stroke', 'var(--ma)').attr('stroke-width', 1.8);
+      svg.append('path').datum(rows).attr('d', d3.line().x((r) => x(r.date)).y((r) => y(r.v)))
+        .attr('fill', 'none').attr('stroke', 'var(--line)').attr('stroke-width', 1.6).attr('stroke-linejoin', 'round');
+      svg.append('circle').attr('cx', x(last.date)).attr('cy', y(last.v)).attr('r', 3.5).attr('fill', 'var(--line)');
+      svg.append('text').attr('class', 'tick').attr('x', x(last.date) + 6).attr('y', y(last.v)).attr('dy', '0.32em').attr('fill', 'var(--white)').text(fidx(last.v));
+      // tooltip
+      const tip = el('div', 'tip', null, holder); tip.hidden = true;
+      const hover = svg.append('g').style('display', 'none');
+      const rule = hover.append('line').attr('y1', mt).attr('y2', H - mb).attr('stroke', 'var(--ref)');
+      const dot = hover.append('circle').attr('r', 3.5).attr('fill', 'var(--line)');
+      const bis = d3.bisector((r) => r.date).center;
+      svg.append('rect').attr('x', left).attr('y', mt).attr('width', Math.max(0, W - right - left)).attr('height', H - mt - mb).attr('fill', 'transparent')
+        .on('pointermove', (e) => {
+          const [px] = d3.pointer(e, svg.node()); const r = rows[bis(rows, x.invert(px))]; if (!r) return;
+          hover.style('display', null); rule.attr('x1', x(r.date)).attr('x2', x(r.date)); dot.attr('cx', x(r.date)).attr('cy', y(r.v));
+          tip.replaceChildren();
+          el('div', 'dim', s.name + ' · week of ' + fday(r.date), tip);
+          el('div', null, 'Index ' + fidx(r.v), tip);
+          if (r.ma != null) { el('div', null, 'MA40  ' + fidx(r.ma), tip); el('div', 'dim', (r.v >= r.ma ? 'Above by ' : 'Below by ') + f1(Math.abs(r.v / r.ma - 1) * 100) + '%', tip); }
+          tip.hidden = false;
+          const er = holder.getBoundingClientRect(), sr = svg.node().getBoundingClientRect(), sc = sr.width / W;
+          const px2 = x(r.date) * sc + sr.left - er.left, py2 = y(r.v) * sc + sr.top - er.top;
+          let lft = px2 + 12; if (lft + tip.offsetWidth > holder.clientWidth) lft = px2 - tip.offsetWidth - 12;
+          tip.style.left = Math.max(0, lft) + 'px'; tip.style.top = Math.max(0, py2 - tip.offsetHeight - 8) + 'px';
+        })
+        .on('pointerleave', () => { hover.style('display', 'none'); tip.hidden = true; });
+    });
+  }
 
-loadData();
+  function wireSeg(id, fn) {
+    document.querySelectorAll('#' + id + ' button').forEach((btn) => btn.addEventListener('click', () => {
+      document.querySelectorAll('#' + id + ' button').forEach((o) => o.setAttribute('aria-pressed', String(o === btn)));
+      fn(btn); drawCharts();
+    }));
+  }
+
+  fetch('data.json', { cache: 'no-cache' })
+    .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then((d) => {
+      DATA = d;
+      document.getElementById('updated').textContent = 'Data through ' + d.data_through;
+      computeAll(); drawSummary(); drawSectors();
+      wireSeg('range-seg', (b) => { WEEKS = Number(b.dataset.weeks); });
+      wireSeg('scale-seg', (b) => { SCALE = b.dataset.scale; });
+      let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawCharts, 150); });
+    })
+    .catch((e) => {
+      document.getElementById('updated').textContent = 'Could not load data';
+      document.getElementById('summary-text').innerHTML = '<span class="err">Could not load data.json (' + String(e.message).replace(/[<>&]/g, '') + '). Run the "Update sector trends" workflow once.</span>';
+    });
+})();
 </script>
 </body>
 </html>
